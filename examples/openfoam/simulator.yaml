@@ -1,0 +1,53 @@
+# Worked example: SIGA configured for OpenFOAM.
+# Reproduced from github.com/brianzliu/repo3_openfoam — the first port of
+# SIGA from GEOS to a different simulator.
+#
+# Key differences from GEOS:
+#   - output is a directory of case files, not a single XML deck
+#   - no XSD schema; validation is structural (balanced braces, FoamFile headers)
+#   - linter is pure-Python (no subprocess), so command_template is null and
+#     the adapter's validate_file() does the work
+#   - primer is baked into AGENTS.md rather than injected separately
+
+simulator:
+  name: OpenFOAM
+  slug: openfoam
+  tagline: "open-source CFD / multiphysics simulator"
+
+config_format:
+  extensions: ["foam", ""]  # empty = files with no extension (OpenFOAM dicts often have none)
+  label: "OpenFOAM case directory"
+  parser: structural
+  output_is_directory: true
+
+linter:
+  enabled: true
+  command_template: null  # use adapter.validate_file()
+  schema_path: null
+  mcp_tool_name: validate_case
+
+rag:
+  collections:
+    - name: tutorials
+      description: "OpenFOAM tutorial walkthroughs from $FOAM_TUTORIALS and FoamGPT"
+      mcp_tool: search_tutorials
+    - name: cases
+      description: "Working OpenFOAM cases with full dict file contents"
+      mcp_tool: search_cases
+    - name: commands
+      description: "CLI commands, utilities, solver invocation patterns"
+      mcp_tool: search_commands
+  embedding: "openai:text-embedding-3-small"
+  vector_db_dir: "${CLAUDE_PLUGIN_ROOT}/../data/openfoam_benchmark/chromadb_openfoam"
+
+memory_primer:
+  default_variant: minimal
+  bake_into_agents_md: true
+
+source_paths:
+  host_lib_dir: "/data/brianliu/OpenFOAM-13/tutorials"
+  container_lib_dir: "/openfoam_lib"
+  docker_image: "openfoam-eval"
+
+env_prefix:
+  override: null  # → OPENFOAM_*

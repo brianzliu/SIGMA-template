@@ -1,0 +1,47 @@
+# Worked example: SIGA configured for GEOS.
+# This is the original configuration the SIGMA template was extracted from.
+# Copy this file over configs/simulator.yaml and run scripts/init_template.py
+# to reproduce a GEOS-targeted instance.
+
+simulator:
+  name: GEOS
+  slug: geos
+  tagline: "open-source multiphysics simulator for subsurface flow, geomechanics, and well systems"
+
+config_format:
+  extensions: ["xml"]
+  label: "XML input deck"
+  parser: xml
+  output_is_directory: false
+
+linter:
+  enabled: true
+  command_template: "xmllint --schema {schema} --noout {file}"
+  schema_path: "/geos_lib/src/coreComponents/schema/schema.xsd"
+  mcp_tool_name: validate_xml
+
+rag:
+  collections:
+    - name: navigator
+      description: "Conceptual orientation, feature discovery, solver docs, source RST"
+      mcp_tool: search_navigator
+    - name: schema
+      description: "Authoritative XML element attributes, types, defaults, descriptions"
+      mcp_tool: search_schema
+    - name: technical
+      description: "Real XML examples with xml_reference and line_range"
+      mcp_tool: search_technical
+  embedding: "openai:text-embedding-3-small"
+  vector_db_dir: "/data/shared/geophysics_agent_data/data/vector_db"
+
+memory_primer:
+  default_variant: absolute_min
+  bake_into_agents_md: false
+
+source_paths:
+  host_lib_dir: "/data/shared/geophysics_agent_data/data/GEOS"
+  container_lib_dir: "/geos_lib"
+  docker_image: "geos-eval"
+
+env_prefix:
+  override: null  # → GEOS_*

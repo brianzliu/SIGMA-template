@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEOS Claude Eval Dashboard</title>
+  <style>
+    :root {
+      --paper: #f6f4ee;
+      --paper-2: #eae5d5;
+      --ink: #161616;
+      --muted: #5b5b55;
+      --rule: #c6c0b0;
+      --heavy: #161616;
+      --green: #0b7e7e;
+      --amber: #c08b2d;
+      --red: #a83232;
+      --blue: #2d5ea8;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .mono {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .masthead {
+      padding: 22px 28px 16px;
+      border-bottom: 2px solid var(--heavy);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .masthead h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .masthead h1 em {
+      font-style: italic;
+      color: var(--green);
+      font-weight: 400;
+    }
+    .runline {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 500 11px/1.4 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .live {
+      color: var(--green);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live i {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+    @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      border-bottom: 1px solid var(--heavy);
+    }
+    .agent-card {
+      padding: 16px 22px;
+      border-right: 1px solid var(--rule);
+      min-height: 142px;
+    }
+    .agent-card:last-child { border-right: none; }
+    .agent-card .k {
+      color: var(--muted);
+      font: 500 10px/1 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .agent-card .name {
+      font: 600 18px/1.15 "JetBrains Mono", ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+    .agent-card .v {
+      margin-top: 14px;
+      font: 600 28px/1 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: -0.02em;
+    }
+    .agent-card .sub {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 400 12px/1.35 "JetBrains Mono", ui-monospace, monospace;
+    }
+    .barline {
+      display: flex;
+      height: 6px;
+      margin-top: 12px;
+      background: #ded8c6;
+      overflow: hidden;
+    }
+    .barline i { display: block; height: 100%; }
+    .g { background: var(--green); }
+    .a { background: var(--amber); }
+    .r { background: var(--red); }
+    .b { background: var(--blue); }
+    .controls {
+      padding: 10px 22px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font: 500 11px/1 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .seg {
+      display: flex;
+      border: 1px solid var(--heavy);
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .seg button {
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--rule);
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      padding: 7px 11px;
+      white-space: nowrap;
+    }
+    .seg button:last-child { border-right: none; }
+    .seg button.on {
+      background: var(--heavy);
+      color: var(--paper);
+    }
+    .seg button .ct { color: var(--green); margin-left: 6px; }
+    input, select {
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font: inherit;
+      padding: 7px 10px;
+      min-height: 31px;
+    }
+    #search { flex: 1; min-width: 220px; max-width: 360px; }
+    .table-wrap { overflow: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font: 400 12px/1.4 "JetBrains Mono", ui-monospace, monospace;
+    }
+    thead th {
+      background: var(--paper-2);
+      border-bottom: 1px solid var(--heavy);
+      border-right: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      padding: 10px 14px;
+      position: sticky;
+      text-align: left;
+      text-transform: uppercase;
+      top: 0;
+      z-index: 3;
+    }
+    thead th:last-child { border-right: none; }
+    tbody td {
+      border-bottom: 1px dotted var(--rule);
+      padding: 10px 14px;
+      vertical-align: middle;
+    }
+    tbody tr:hover { background: #ece7d7; }
+    .rank { color: #8f897a; width: 34px; }
+    .task-name { font-weight: 600; color: var(--ink); }
+    .task-dir {
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 3px;
+      max-width: 440px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .blocked-gt {
+      color: var(--red);
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 4px;
+      max-width: 440px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .muted { color: var(--muted); }
+    .stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .stat .mark {
+      width: 10px;
+      height: 10px;
+      display: inline-block;
+      background: var(--rule);
+    }
+    .stat.ok { color: var(--green); }
+    .stat.run { color: var(--amber); }
+    .stat.err, .stat.nrg { color: var(--red); }
+    .stat.pnd { color: var(--muted); }
+    .stat.ok .mark { background: var(--green); }
+    .stat.run .mark { background: var(--amber); animation: pulse 1.4s infinite; }
+    .stat.err .mark, .stat.nrg .mark { background: var(--red); }
+    .pbar {
+      width: 96px;
+      height: 4px;
+      background: #d8d2c0;
+      display: inline-block;
+      overflow: hidden;
+      position: relative;
+      margin-top: 5px;
+    }
+    .pbar i {
+      position: absolute;
+      height: 100%;
+      width: 40%;
+      background: var(--amber);
+      animation: slide 1.8s ease-in-out infinite;
+    }
+    .ragrow {
+      display: inline-flex;
+      gap: 2px;
+      vertical-align: -1px;
+    }
+    .ragrow s {
+      width: 16px;
+      height: 10px;
+      background: #d8d2c0;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .ragrow s.ok { background: var(--green); }
+    .ragrow s.part { background: linear-gradient(90deg, var(--green) 50%, #d8d2c0 50%); }
+    .tools {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      max-width: 520px;
+    }
+    .tool {
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      padding: 2px 6px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .tool b {
+      color: var(--blue);
+      margin-left: 4px;
+      font-weight: 600;
+    }
+    .latest {
+      color: var(--muted);
+      display: -webkit-box;
+      font-size: 10px;
+      line-height: 1.35;
+      max-height: 5.4em;
+      max-width: 520px;
+      overflow: hidden;
+      white-space: pre-wrap;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+    }
+    .latest.err { color: var(--red); }
+    .log-btn {
+      background: var(--heavy);
+      color: var(--paper);
+      border: 1px solid var(--heavy);
+      border-radius: 2px;
+      cursor: pointer;
+      font: 600 10px/1 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: 0.08em;
+      padding: 7px 9px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .log-btn.secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+    .empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--muted);
+      font: 500 12px/1.4 "JetBrains Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 17, 17, 0.62);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      z-index: 100;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(1120px, 96vw);
+      height: min(760px, 90vh);
+      background: var(--paper);
+      border: 2px solid var(--heavy);
+      box-shadow: 0 20px 80px rgba(0,0,0,.35);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--heavy);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+    }
+    .modal-title {
+      margin: 0;
+      font: 600 18px/1.2 Georgia, "Times New Roman", serif;
+    }
+    .modal-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font: 500 11px/1.4 "JetBrains Mono", ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+    .modal-actions { display: flex; gap: 8px; }
+    .conversation {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 18px 20px;
+      background: #fbfaf5;
+    }
+    .entry {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 12px;
+      border-bottom: 1px dotted var(--rule);
+      padding: 10px 0;
+    }
+    .entry-label {
+      color: var(--muted);
+      font: 600 10px/1.4 "JetBrains Mono", ui-monospace, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+    .entry-text {
+      margin: 0;
+      white-space: pre-wrap;
+      color: var(--ink);
+      font: 400 12px/1.55 "JetBrains Mono", ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 900px) {
+      .masthead { align-items: flex-start; }
+      .agent-grid { grid-template-columns: 1fr; }
+      .agent-card { border-right: none; border-bottom: 1px solid var(--rule); }
+      .entry { grid-template-columns: 1fr; }
+      .modal { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div>
+      <h1>GEOS Eval <em>Lattice</em></h1>
+      <div class="runline">
+        <span id="run-name">Run</span>
+        <span> | </span>
+        <span class="live"><i></i>live | 2s refresh</span>
+      </div>
+    </div>
+    <div class="runline" id="updated-at">Updated --</div>
+  </header>
+
+  <section class="agent-grid" id="agent-grid"></section>
+
+  <section class="controls">
+    <div class="seg" id="status-filters"></div>
+    <input id="search" placeholder="filter agent / task / dir">
+    <select id="agent-filter" aria-label="Agent filter"></select>
+    <select id="sort-mode" aria-label="Sort">
+      <option value="elapsed">elapsed desc</option>
+      <option value="status">status</option>
+      <option value="agent">agent</option>
+      <option value="primer">primer</option>
+      <option value="rag">rag calls</option>
+      <option value="tools">tool calls</option>
+    </select>
+  </section>
+
+  <main class="table-wrap">
+    <table aria-label="GEOS eval tasks">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Agent</th>
+          <th>Task</th>
+          <th>Status</th>
+          <th>Elapsed</th>
+          <th>Primer</th>
+          <th>Nav</th>
+          <th>Sch</th>
+          <th>Tech</th>
+          <th>Tools</th>
+          <th>Latest</th>
+          <th>Conversation</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </main>
+
+  <div class="modal" id="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 class="modal-title" id="log-title">Conversation Log</h2>
+          <div class="modal-meta" id="log-meta"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="log-btn secondary" id="copy-log">Copy</button>
+          <button class="log-btn" id="close-log">Close</button>
+        </div>
+      </div>
+      <div class="conversation" id="conversation"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentData = { run_name: "", updated: "", tasks: [] };
+    let selectedStatus = "all";
+    let selectedAgent = "all";
+    let searchTerm = "";
+    let sortMode = "elapsed";
+    let lastConversationText = "";
+
+    function cls(status) {
+      return String(status || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+    }
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+    function lines(value) {
+      if (Array.isArray(value)) return value.slice(-3).join(" ");
+      return value || "";
+    }
+    function latestExcerpt(value, max = 520) {
+      const text = String(value || "").replace(/\r/g, "").trim();
+      if (text.length <= max) return text;
+      const head = text.slice(0, Math.floor(max * 0.48)).trimEnd();
+      const tail = text.slice(text.length - Math.floor(max * 0.42)).trimStart();
+      return `${head}
+...
+${tail}`;
+    }
+    function statusGroup(status) {
+      const s = String(status || "pending");
+      if (s === "success") return "ok";
+      if (s === "running") return "run";
+      if (s === "preflight") return "run";
+      if (s === "retrying_pseudo_tool") return "run";
+      if (s === "retrying_agent_output") return "run";
+      if (s === "failed_no_rag") return "nrg";
+      if (s === "failed_rag_unavailable") return "nrg";
+      if (s === "failed_pseudo_tool") return "nrg";
+      if (s === "failed_no_outputs") return "err";
+      if (s === "pending") return "pnd";
+      return "err";
+    }
+    function ragCount(task, name) {
+      const counts = task.rag_tool_counts || {};
+      return Number(counts[name] || 0);
+    }
+    function ragCell(count) {
+      const state = count > 0 ? "ok" : "";
+      return `<span class="ragrow"><s class="${state}"></s></span> ${esc(count)}`;
+    }
+    function blockedGtFiles(task) {
+      const files = task.blocked_gt_xml_filenames;
+      return Array.isArray(files) ? files : [];
+    }
+    function blockedGtSummary(task, max = 3) {
+      const files = blockedGtFiles(task);
+      if (!files.length) return "blocked GT: none";
+      const shown = files.slice(0, max).join(", ");
+      const extra = files.length > max ? ` +${files.length - max} more` : "";
+      return `blocked GT: ${shown}${extra}`;
+    }
+    function primerCell(task) {
+      const inSystem = Boolean(task.primer_in_system_prompt);
+      const read = Boolean(task.primer_read);
+      const count = Number(task.primer_read_tool_calls || 0);
+      if (inSystem) return `<span class="ragrow"><s class="ok"></s></span> system`;
+      return `<span class="ragrow"><s class="${read ? "ok" : ""}"></s></span> ${read ? `read ${esc(count)}` : "no"}`;
+    }
+    function fmtElapsed(value) {
+      if (value === undefined || value === null || value === "") return "--";
+      const n = Number(value);
+      if (!Number.isFinite(n)) return esc(value);
+      if (n >= 3600) return `${(n / 3600).toFixed(1)}h`;
+      if (n >= 60) return `${Math.floor(n / 60)}m ${Math.round(n % 60)}s`;
+      return `${n.toFixed(1)}s`;
+    }
+    function taskToolCount(task) {
+      return Number(task.total_tool_calls || 0) + Number(task.pseudo_tool_calls || 0);
+    }
+    function allTools(task) {
+      const actual = Object.entries(task.per_tool_counts || {});
+      const pseudo = Object.entries(task.pseudo_tool_counts || {})
+        .map(([name, count]) => [`pseudo:${name}`, count]);
+      return actual.concat(pseudo)
+        .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+        .map(([name, count]) => `<span class="tool">${esc(name)}<b>${esc(count)}</b></span>`)
+        .join("");
+    }
+    function agentMetrics(tasks) {
+      const byAgent = new Map();
+      for (const task of tasks) {
+        const agent = task.agent || "unknown";
+        if (!byAgent.has(agent)) {
+          byAgent.set(agent, {
+            agent,
+            total: 0,
+            success: 0,
+            running: 0,
+            failed: 0,
+            noRag: 0,
+            ragUnavailable: 0,
+            pseudoTool: 0,
+            pending: 0,
+            ragMet: 0,
+            primerRead: 0,
+            tools: 0,
+            nav: 0,
+            sch: 0,
+            tech: 0,
+          });
+        }
+        const m = byAgent.get(agent);
+        m.total += 1;
+        const status = task.status || "pending";
+        if (status === "success") m.success += 1;
+        else if (status === "running") m.running += 1;
+        else if (status === "preflight") m.running += 1;
+        else if (status === "retrying_pseudo_tool") m.running += 1;
+        else if (status === "retrying_agent_output") m.running += 1;
+        else if (status === "failed_no_rag") m.noRag += 1;
+        else if (status === "failed_rag_unavailable") m.ragUnavailable += 1;
+        else if (status === "failed_pseudo_tool") m.pseudoTool += 1;
+        else if (status === "pending") m.pending += 1;
+        else m.failed += 1;
+        if (task.rag_requirement_met) m.ragMet += 1;
+        if (task.primer_read || task.primer_in_system_prompt) m.primerRead += 1;
+        m.tools += taskToolCount(task);
+        m.nav += ragCount(task, "search_navigator");
+        m.sch += ragCount(task, "search_schema");
+        m.tech += ragCount(task, "search_technical");
+      }
+      return Array.from(byAgent.values()).sort((a, b) => a.agent.localeCompare(b.agent));
+    }
+    function renderAgentCards(tasks) {
+      const cards = agentMetrics(tasks);
+      document.getElementById("agent-grid").innerHTML = cards.map(m => {
+        const denom = Math.max(m.total, 1);
+        const health = Math.round((m.success / denom) * 100);
+        const ragRate = Math.round((m.ragMet / denom) * 100);
+        const primerRate = Math.round((m.primerRead / denom) * 100);
+        return `<article class="agent-card">
+          <div class="k">Agent</div>
+          <div class="name">${esc(m.agent)}</div>
+          <div class="v">${esc(m.success)} / ${esc(m.total)}</div>
+          <div class="sub">success ${esc(health)}% | running ${esc(m.running)} | error ${esc(m.failed)} | no_rag ${esc(m.noRag)} | rag_down ${esc(m.ragUnavailable)} | pseudo ${esc(m.pseudoTool)} | pending ${esc(m.pending)}</div>
+          <div class="barline" aria-hidden="true">
+            <i class="g" style="width:${(m.success / denom) * 100}%"></i>
+            <i class="a" style="width:${(m.running / denom) * 100}%"></i>
+            <i class="r" style="width:${((m.failed + m.noRag + m.ragUnavailable + m.pseudoTool) / denom) * 100}%"></i>
+            <i class="b" style="width:${(m.pending / denom) * 100}%"></i>
+          </div>
+          <div class="sub">Primer ${esc(m.primerRead)} / ${esc(m.total)} (${esc(primerRate)}%) | RAG ${esc(ragRate)}% | nav ${esc(m.nav)} | sch ${esc(m.sch)} | tech ${esc(m.tech)} | tools ${esc(m.tools)}</div>
+        </article>`;
+      }).join("") || `<div class="empty">No agent metrics yet</div>`;
+    }
+    function renderFilters(tasks) {
+      const statuses = ["all", "preflight", "retrying_pseudo_tool", "running", "success", "failed_pseudo_tool", "failed_rag_unavailable", "failed_no_rag", "failed", "error", "timeout", "pending"];
+      document.getElementById("status-filters").innerHTML = statuses.map(status => {
+        const on = selectedStatus === status ? "on" : "";
+        return `<button class="${on}" data-status="${esc(status)}">${esc(status)}</button>`;
+      }).join("");
+      document.querySelectorAll("#status-filters button").forEach(button => {
+        button.addEventListener("click", () => {
+          selectedStatus = button.dataset.status;
+          render();
+        });
+      });
+
+      const agents = ["all", ...new Set(tasks.map(task => task.agent).filter(Boolean).sort())];
+      const agentFilter = document.getElementById("agent-filter");
+      const previous = selectedAgent;
+      agentFilter.innerHTML = agents.map(agent => `<option value="${esc(agent)}">${esc(agent)}</option>`).join("");
+      selectedAgent = agents.includes(previous) ? previous : "all";
+      agentFilter.value = selectedAgent;
+    }
+    function filteredTasks() {
+      let tasks = [...(currentData.tasks || [])];
+      if (selectedStatus !== "all") tasks = tasks.filter(task => (task.status || "pending") === selectedStatus);
+      if (selectedAgent !== "all") tasks = tasks.filter(task => task.agent === selectedAgent);
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        tasks = tasks.filter(task =>
+          String(task.agent || "").toLowerCase().includes(q) ||
+          String(task.task || "").toLowerCase().includes(q) ||
+          String(task.task_dir || "").toLowerCase().includes(q) ||
+          blockedGtFiles(task).some(file => String(file).toLowerCase().includes(q))
+        );
+      }
+      tasks.sort((a, b) => {
+        if (sortMode === "status") return String(a.status || "").localeCompare(String(b.status || ""));
+        if (sortMode === "agent") return String(a.agent || "").localeCompare(String(b.agent || "")) || String(a.task || "").localeCompare(String(b.task || ""));
+        if (sortMode === "primer") return Number(Boolean(b.primer_read || b.primer_in_system_prompt)) - Number(Boolean(a.primer_read || a.primer_in_system_prompt));
+        if (sortMode === "rag") return Number(b.rag_tool_calls || 0) - Number(a.rag_tool_calls || 0);
+        if (sortMode === "tools") {
+          return taskToolCount(b) - taskToolCount(a);
+        }
+        return Number(b.elapsed_seconds || 0) - Number(a.elapsed_seconds || 0);
+      });
+      return tasks;
+    }
+    function renderRows(tasks) {
+      const rows = document.getElementById("rows");
+      if (!tasks.length) {
+        rows.innerHTML = `<tr><td colspan="12"><div class="empty">No tasks match the current filters</div></td></tr>`;
+        return;
+      }
+      rows.innerHTML = tasks.map((task, index) => {
+        const status = task.status || "pending";
+        const group = statusGroup(status);
+        const latestErr = lines(task.latest_stderr);
+        const latestOut = latestExcerpt(task.latest_agent_response) || latestExcerpt(lines(task.latest_stdout));
+        const latest = latestErr || latestOut || "";
+        const latestClass = latestErr ? "latest err" : "latest";
+        return `<tr>
+          <td class="rank">${esc(index + 1)}</td>
+          <td>${esc(task.agent)}</td>
+          <td>
+            <div class="task-name">${esc(task.task)}</div>
+            <div class="task-dir">${esc(task.task_dir || "")}</div>
+            <div class="blocked-gt" title="${esc(blockedGtFiles(task).join(", ") || "none")}">${esc(blockedGtSummary(task))}</div>
+          </td>
+          <td>
+            <span class="stat ${group}"><i class="mark"></i>${esc(status)}</span>
+            ${status === "running" ? `<div><span class="pbar"><i></i></span></div>` : ""}
+          </td>
+          <td>${fmtElapsed(task.elapsed_seconds)}</td>
+          <td>${primerCell(task)}</td>
+          <td>${ragCell(ragCount(task, "search_navigator"))}</td>
+          <td>${ragCell(ragCount(task, "search_schema"))}</td>
+          <td>${ragCell(ragCount(task, "search_technical"))}</td>
+          <td>
+            <div class="muted">${esc(taskToolCount(task))} calls</div>
+            <div class="tools">${allTools(task) || `<span class="muted">--</span>`}</div>
+          </td>
+          <td><div class="${latestClass}">${esc(latest || "--")}</div></td>
+          <td><button class="log-btn" data-agent="${esc(task.agent)}" data-task="${esc(task.task)}">Open Log</button></td>
+        </tr>`;
+      }).join("");
+      document.querySelectorAll(".log-btn[data-agent]").forEach(button => {
+        button.addEventListener("click", () => openLog(button.dataset.agent, button.dataset.task));
+      });
+    }
+    function render() {
+      document.getElementById("run-name").textContent = currentData.run_name || "Run";
+      document.getElementById("updated-at").textContent = currentData.updated ? `Updated ${currentData.updated}` : "Updated --";
+      renderAgentCards(currentData.tasks || []);
+      renderFilters(currentData.tasks || []);
+      renderRows(filteredTasks());
+    }
+    async function refresh() {
+      const response = await fetch("/api/status", { cache: "no-store" });
+      currentData = await response.json();
+      render();
+    }
+    async function openLog(agent, task) {
+      const modal = document.getElementById("log-modal");
+      document.getElementById("log-title").textContent = `${task}`;
+      document.getElementById("log-meta").textContent = `${agent} | loading conversation log`;
+      document.getElementById("conversation").innerHTML = `<div class="empty">Loading conversation log</div>`;
+      modal.classList.add("open");
+      const url = `/api/conversation?agent=${encodeURIComponent(agent)}&task=${encodeURIComponent(task)}`;
+      const response = await fetch(url, { cache: "no-store" });
+      const payload = await response.json();
+      const blocked = Array.isArray(payload.blocked_gt_xml_filenames) ? payload.blocked_gt_xml_filenames : [];
+      const blockedText = blocked.length ? blocked.join(", ") : "none";
+      document.getElementById("log-meta").textContent = `${payload.agent || agent} | ${payload.task_dir || ""} | blocked GT: ${blockedText}`;
+      if (payload.error) {
+        lastConversationText = payload.error;
+        document.getElementById("conversation").innerHTML = `<div class="empty">${esc(payload.error)}</div>`;
+        return;
+      }
+      const entries = payload.entries || [];
+      lastConversationText = entries.map(entry => `[${entry.label}]\n${entry.text}`).join("\n\n");
+      document.getElementById("conversation").innerHTML = entries.length ? entries.map(entry => `
+        <section class="entry">
+          <div class="entry-label">${esc(entry.label)}</div>
+          <pre class="entry-text">${esc(entry.text)}</pre>
+        </section>
+      `).join("") : `<div class="empty">No conversation events recorded yet</div>`;
+    }
+    function closeLog() {
+      document.getElementById("log-modal").classList.remove("open");
+    }
+    document.getElementById("search").addEventListener("input", event => {
+      searchTerm = event.target.value.trim();
+      render();
+    });
+    document.getElementById("agent-filter").addEventListener("change", event => {
+      selectedAgent = event.target.value;
+      render();
+    });
+    document.getElementById("sort-mode").addEventListener("change", event => {
+      sortMode = event.target.value;
+      render();
+    });
+    document.getElementById("close-log").addEventListener("click", closeLog);
+    document.getElementById("log-modal").addEventListener("click", event => {
+      if (event.target.id === "log-modal") closeLog();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeLog();
+    });
+    document.getElementById("copy-log").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(lastConversationText); } catch {}
+    });
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

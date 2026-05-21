@@ -1,0 +1,14 @@
+NOTE on available MCP tools in this configuration:
+
+The only MCP tool registered in this run is `mcp__xmllint__validate_geos_xml`, which validates XML against the GEOS schema.
+
+The following MCP tools are NOT registered and NOT available in this configuration:
+- `mcp__geos-rag__search_navigator`
+- `mcp__geos-rag__search_schema`
+- `mcp__geos-rag__search_technical`
+
+Do NOT call those tools. Do NOT emit `<minimax:tool_call>` wrappers, XML-style `<invoke>` blocks, or DSML function-call blocks naming any `mcp__geos-rag__*` tool — they are text in the conversation and will not execute, and they cannot be routed to a real handler in this run.
+
+To find example XML files: use Glob/Grep/Read against /geos_lib/inputFiles/.
+To inspect the GEOS schema: use Read against /geos_lib/src/coreComponents/schema/schema.xsd.
+To validate an XML you wrote: call mcp__xmllint__validate_geos_xml.

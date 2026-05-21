@@ -1,0 +1,29 @@
+{
+  "description": "{{SIMULATOR_NAME}} self-verification hooks. Stop hook (verify_outputs.py) blocks end_turn when /workspace/inputs/ is missing output files or contains files that fail plugin/adapters/validator.py. PostToolUse hook (verify_post_write.py) catches parse errors immediately after each Write|Edit|MultiEdit so the agent gets feedback within seconds instead of after end-of-turn.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/verify_outputs.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/verify_post_write.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

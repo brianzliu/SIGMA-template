@@ -1,0 +1,1 @@
+Use only real tool calls exposed by the runtime. Do not print XML-style <invoke> blocks, <parameter> blocks, DSML function-call blocks, or minimax:tool_call wrappers; those are text and will not execute. To create files, use the actual Write, Edit, or Bash tools exposed by the runtime, and write only under /workspace/inputs.

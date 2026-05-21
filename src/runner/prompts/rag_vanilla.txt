@@ -1,0 +1,1 @@
+The GEOS primer above is already in system context. Do not look for or read /workspace/GEOS_PRIMER.md; it is intentionally absent from task workspaces. Use the standard tools (Read, Glob, Grep, Bash) to consult the GEOS source mounted at /geos_lib for examples and documentation.

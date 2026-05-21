@@ -1,0 +1,108 @@
+# SIGMA simulator config — drives template instantiation.
+#
+# This file is the single source of truth for simulator-specific values.
+# After editing, run `python scripts/init_template.py` to apply the config:
+# the script renames primer/skill/MCP files, substitutes placeholders across
+# the codebase, and regenerates plugin/.claude-plugin/plugin.json.
+#
+# Two worked examples ship under examples/: copy examples/geos/simulator.yaml
+# or examples/openfoam/simulator.yaml over this file to reproduce either.
+
+simulator:
+  # Display name as it appears in primers, MCP descriptions, doc strings.
+  # e.g. "GEOS", "OpenFOAM", "ANSYS Fluent".
+  name: GEOS
+
+  # Lowercase short slug — used in env var prefixes, MCP server names,
+  # filenames, skill dir names. Must be a valid identifier fragment.
+  slug: geos
+
+  # One-sentence elevator pitch. Goes into primer headers and plugin.json description.
+  tagline: "open-source multiphysics simulator"
+
+config_format:
+  # File extension(s) the agent writes. The verifier hook only checks files
+  # with these extensions. e.g. ["xml"], ["foam"], ["i"].
+  extensions: ["xml"]
+
+  # Human label, used in prompts. e.g. "XML deck", "case directory", "input deck".
+  label: "XML input deck"
+
+  # Parser the post-write hook uses. One of: "xml" (uses xml.etree),
+  # "json", "yaml", "structural" (calls adapter.validate_text), or
+  # "external" (calls adapter.validate_file via subprocess).
+  parser: xml
+
+  # If true, the agent's output is a directory of files rather than a single
+  # file (e.g. OpenFOAM case dirs). The verifier walks the tree instead of
+  # checking a single file.
+  output_is_directory: false
+
+linter:
+  # Whether a schema/lint tool exists for this simulator. Set false to disable
+  # the schema-validation pass entirely.
+  enabled: true
+
+  # Subprocess command template. {schema} and {file} are substituted at call time.
+  # If null, the adapter's validate_file() is called instead of a subprocess.
+  command_template: "xmllint --schema {schema} --noout {file}"
+
+  # Path to schema file inside the runtime container (Docker / sandbox).
+  # Used as the default for the {SLUG}_HOOK_SCHEMA_PATH env var.
+  schema_path: "/geos_lib/src/coreComponents/schema/schema.xsd"
+
+  # Tool name the agent calls via MCP to validate explicitly.
+  # Surfaces in skills/{slug}-rag/SKILL.md and plugin.json.
+  mcp_tool_name: validate_config
+
+rag:
+  # ChromaDB-backed retrieval. Three collections is the SIGA convention
+  # (conceptual / authoritative / examples) but you can name them anything.
+  collections:
+    - name: navigator
+      description: "Conceptual orientation, feature discovery, tutorials"
+      mcp_tool: search_navigator
+    - name: schema
+      description: "Authoritative element attributes, types, defaults"
+      mcp_tool: search_schema
+    - name: technical
+      description: "Real input examples with file/line references"
+      mcp_tool: search_technical
+
+  # Default embedding model. "hash" = deterministic hash embedding (no API),
+  # "openai:<model>" = OpenAI embeddings (requires OPENAI_API_KEY).
+  embedding: "openai:text-embedding-3-small"
+
+  # Default vector DB path. Override via {SLUG}_VECTOR_DB_DIR env var.
+  vector_db_dir: "/data/shared/geophysics_agent_data/data/vector_db"
+
+memory_primer:
+  # The primer is the system-prompt prefix that orients the model.
+  # Three variants ship: absolute_min (~7 lines), minimal (~80 lines),
+  # minimal_vanilla (~400 lines, with worked examples).
+  # Set which is the default at runtime.
+  default_variant: absolute_min
+
+  # If true, the primer is baked into run/AGENTS.md as a `# {Name} Primer`
+  # section (OpenFOAM-style). If false, AGENTS.md is generic and primer is
+  # injected separately via --primer-path (GEOS-style).
+  bake_into_agents_md: false
+
+source_paths:
+  # Where the simulator's source code / tutorials / examples live on the host.
+  # The agent does NOT see this path directly; it's used by build_chromadb.py
+  # to index documentation, and by contamination.py to filter examples out of
+  # eval tasks.
+  host_lib_dir: "/data/shared/geophysics_agent_data/data/GEOS"
+
+  # Path INSIDE the runtime container where the simulator binary / lib is mounted.
+  container_lib_dir: "/geos_lib"
+
+  # Docker image used for evaluation runs. Built from run/Dockerfile.
+  docker_image: "geos-eval"
+
+env_prefix:
+  # All env vars use this prefix. Convention is uppercase slug.
+  # e.g. GEOS_HOOK_DISABLE, OPENFOAM_VECTOR_DB_DIR.
+  # Leave null to derive from simulator.slug.uppercase.
+  override: null

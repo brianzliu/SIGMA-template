@@ -1,0 +1,48 @@
+# Local Claude Code state
+.claude/
+.claude-server-commander.log
+
+# Data volumes (symlinks into shared storage)
+/data
+/runs
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+run/geos-agent-dashboard/node_modules/
+run/geos-agent-dashboard/.next/
+research-copilot/
+
+# Ephemeral run logs (keep comparison outputs and scripts)
+misc/*.log
+misc/launch_*.sh
+misc/ablation_deepseek_600s_backup/
+misc/ablation_deepseek_v2_failed_dash_bug/
+
+# Cloned external repos (kept locally as references, not vendored)
+misc/refs/
+
+# Analysis outputs (regenerable from scripts/analysis/*.py)
+scripts/analysis/out/**/*.csv
+scripts/analysis/out_4cond/**/*.csv

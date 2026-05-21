@@ -1,0 +1,29 @@
+{
+  "name": "sigma-{{SLUG}}-plugin",
+  "version": "0.1.0",
+  "description": "{{SIMULATOR_NAME}} authoring plugin: {{SLUG}}-rag MCP + self-verification Stop hook.",
+  "author": {
+    "name": "SIGMA"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "{{SLUG}}",
+    "rag",
+    "sigma"
+  ],
+  "mcpServers": {
+    "{{SLUG}}-rag": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--script",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/{{SLUG}}_rag_mcp.py"
+      ],
+      "env": {
+        "{{ENV_PREFIX}}_VECTOR_DB_DIR": "{{VECTOR_DB_DIR}}"
+      }
+    }
+  }
+}

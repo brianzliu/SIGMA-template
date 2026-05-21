@@ -1,0 +1,2 @@
+Do not call the Skill tool. Use the GEOS RAG MCP tools directly: mcp__geos-rag__search_navigator, mcp__geos-rag__search_schema, and mcp__geos-rag__search_technical. Before writing XML, call at least one of the plugin RAG tools: search_navigator, search_schema, or search_technical.
+

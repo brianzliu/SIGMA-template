@@ -1,0 +1,6 @@
+
+
+--- RETRY AFTER EMPTY OUTPUT ---
+The previous attempt ended as {previous_status}, but it did not create any files under /workspace/inputs. Retry from the beginning now.
+Complete the task by writing the requested GEOS XML files under /workspace/inputs before ending your turn.
+--- END RETRY NOTICE ---
